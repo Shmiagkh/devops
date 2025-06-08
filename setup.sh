@@ -5,9 +5,9 @@ set -e
 # Prompt for user input
 read -p "Enter the SSH username for nodes: " SSH_USER
 read -p "Enter space-separated IP addresses or hostnames of the nodes(servers, work stations): " -a NODE_IPS
-read -p "Enter snmp device adresses" -a SNMPIPS
-read -p "Enter snmp device user" SNMPUSER
-read -p "Enter snmp device password" SNMPASS
+read -p "Enter snmp device adresses: " -a SNMPIPS
+read -p "Enter snmp device user: " SNMPUSER
+read -p "Enter snmp device password: " SNMPASS
 
 PLAYBOOK_PATH="./node_install.yaml"
 INVENTORY_FILE="./inventory.ini"
@@ -269,7 +269,8 @@ case $PKG_MANAGER in
       docker-compose \
       openssh-server \
       ansible \
-      net-snmp-tools
+      net-snmp-tools \
+      yum
     sudo yum install - y \
       gcc \
       make \
@@ -315,8 +316,9 @@ echo "Cleaning up..."
 rm -f "$TARFILE"
 
 export PATH=$PATH:/usr/local/go/bin
-
-git clone https://github.com/prometheus/snmp_exporter.git
+if [ ! -d "snmp_exporter" ]; then
+  git clone https://github.com/prometheus/snmp_exporter.git
+fi
 cd snmp_exporter/generator
 make generator mibs
 
@@ -354,8 +356,8 @@ mv "tmpfile" "./generator.yml"
 ./generator -m mibs generate
 cd ..
 cd ..
-mv snmp_exporter/generator/snmp.yml snmp
-
+mv snmp_exporter/generator/snmp.yml snmp/
+rm -rf snmp_exporter
 #creating key
 
 if [ ! -f ~/.ssh/id_rsa.pub ]; then
@@ -430,7 +432,7 @@ scrape_configs:
   - job_name: 'snmp'
     file_sd_configs:
       - files:
-	  - '/etc/prometheus/snmp_targets.yml'
+          - '/etc/prometheus/snmp_targets.yml'
     metrics_path: /snmp
     params:
       auth: [public_v3]
