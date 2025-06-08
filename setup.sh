@@ -4,12 +4,16 @@ set -e
 
 # Prompt for user input
 read -p "Enter the SSH username for nodes: " SSH_USER
-read -p "Enter space-separated IP addresses or hostnames of the nodes: " -a NODE_IPS
+read -p "Enter space-separated IP addresses or hostnames of the nodes(servers, work stations): " -a NODE_IPS
+read -p "Enter snmp device adresses" -a SNMPIPS
+read -p "Enter snmp device user" SNMPUSER
+read -p "Enter snmp device password" SNMPASS
 
 PLAYBOOK_PATH="./node_install.yaml"
 INVENTORY_FILE="./inventory.ini"
 PROMETHEUS_TARGETS_FILE="./prometheus/prometheus_targets.yml"
 PROMETHEUS_CONFIG_FILE="./prometheus/prometheus.yml"
+MY_IP=$(ip route get 1 | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
 
 # prometheus directory
 if [ ! -d "prometheus" ]; then
@@ -251,7 +255,11 @@ case $PKG_MANAGER in
       software-properties-common \
       docker-compose \
       openssh-server \
-      ansible
+      ansible \
+      unzip \
+      build-essential \
+      libsnmp-dev \
+      snmp
     ;;
   dnf)
     sudo dnf install -y \
@@ -260,7 +268,16 @@ case $PKG_MANAGER in
       lvm2 \
       docker-compose \
       openssh-server \
-      ansible
+      ansible \
+      net-snmp-tools
+    sudo yum install - y \
+      gcc \
+      make \
+      net-snmp \
+      net-snmp-utils \
+      net-snmp-libs \
+      net-snmp-devel \
+      golang
     ;;
   yum)
     sudo yum install -y \
@@ -269,9 +286,75 @@ case $PKG_MANAGER in
       lvm2 \
       docker-compose \
       openssh-server \
-      ansible
+      ansible \
+      gcc \
+      make \
+      net-snmp \
+      net-snmp-utils \
+      net-snmp-libs \
+      net-snmp-devel \
+      golang
     ;;
 esac
+
+GO_VERSION="1.24.4"
+ARCH="amd64"
+OS=$(uname | tr '[:upper:]' '[:lower:]')
+
+TARFILE="go${GO_VERSION}.${OS}-${ARCH}.tar.gz"
+DOWNLOAD_URL="https://go.dev/dl/${TARFILE}"
+
+echo "Downloading $TARFILE from official source..."
+curl -LO "$DOWNLOAD_URL"
+
+echo "Extracting archive to /usr/local ..."
+rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf "$TARFILE"
+
+echo "Cleaning up..."
+rm -f "$TARFILE"
+
+export PATH=$PATH:/usr/local/go/bin
+
+git clone https://github.com/prometheus/snmp_exporter.git
+cd snmp_exporter/generator
+make generator mibs
+
+cat <<EOF > "tmpfile"
+---
+auths:
+  public_v1:
+    version: 1
+  public_v2:
+    version: 2
+  public_v3:
+    version: 3
+    community: public_v3
+    username: $SNMPUSER
+    security_level: authPriv
+    password: $SNMPASS
+    auth_protocol: SHA
+    priv_protocol: AES
+    priv_password: $SNMPASS
+modules:
+  # SNMPv2-MIB for things like sysDescr, sysUpTime, etc.
+  system:
+    walk:
+      - sysUpTime
+      - interfaces
+      - ifXTable
+      - sysName
+      - ifHCInOctets
+      - ifHCOutOctets
+      - ifInErrors
+      - ifOutErrors
+EOF
+tail -n +12 "./generator.yml" >> "tmpfile"
+mv "tmpfile" "./generator.yml"
+./generator -m mibs generate
+cd ..
+cd ..
+mv snmp_exporter/generator/snmp.yml snmp
 
 #creating key
 
@@ -324,6 +407,16 @@ fi
 
 sudo chown prometheus:prometheus "$PROMETHEUS_TARGETS_FILE"
 
+{
+  echo "-"
+  echo "  targets:"
+  for ip in "${SNMPIPS[@]}"; do
+    echo "    - \"$ip\""
+  done
+} > "./prometheus/snmp_targets.yml"
+
+sudo chown prometheus:prometheus "./prometheus/snmp_targets.yml"
+
 cat <<EOF >"$PROMETHEUS_CONFIG_FILE"
 global:
   scrape_interval: 15s
@@ -334,6 +427,21 @@ scrape_configs:
     file_sd_configs:
       - files:
           - '/etc/prometheus/prometheus_targets.yml'
+  - job_name: 'snmp'
+    file_sd_configs:
+      - files:
+	  - '/etc/prometheus/snmp_targets.yml'
+    metrics_path: /snmp
+    params:
+      auth: [public_v3]
+      module: [if_mib]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: _address_
+        replacement: $MY_IP:9116
 EOF
 
 docker-compose -f ./prometheus/prometheus.yaml up -d
