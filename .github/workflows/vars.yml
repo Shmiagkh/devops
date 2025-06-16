@@ -1,0 +1,54 @@
+name: Setup Script with Interactive Inputs
+
+on:
+  workflow_dispatch:
+    inputs:
+      ssh_user:
+        description: 'SSH username for nodes'
+        required: true
+        default: 'user'
+      node_ips:
+        description: 'Space-separated IP addresses or hostnames of nodes (e.g. "192.168.1.10 server2")'
+        required: true
+        default: '192.168.1.10'
+      snmp_ips:
+        description: 'Space-separated SNMP device addresses (e.g. "10.0.0.1 10.0.0.2")'
+        required: true
+        default: '10.0.0.1'
+      snmp_user:
+        description: 'SNMP device user'
+        required: true
+        default: 'public'
+      snmp_pass:
+        description: 'SNMP device password'
+        required: true
+        default: 'public'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Replace variables in setup.sh
+        run: |
+          sed -i "s/^SSH_USER=.*/SSH_USER='${{ github.event.inputs.ssh_user }}'/" setup.sh || echo "SSH_USER='${{ github.event.inputs.ssh_user }}'" >> setup.sh
+          # For arrays, convert space-separated to bash array syntax
+          NODE_IPS_ARRAY=(${{ github.event.inputs.node_ips }})
+          SNMPIPS_ARRAY=(${{ github.event.inputs.snmp_ips }})
+
+          # Replace NODE_IPS array as bash array declaration
+          sed -i "/^NODE_IPS=/d" setup.sh
+          echo "NODE_IPS=(${NODE_IPS_ARRAY[@]})" >> setup.sh
+
+          # Replace SNMPIPS array as bash array declaration
+          sed -i "/^SNMPIPS=/d" setup.sh
+          echo "SNMPIPS=(${SNMPIPS_ARRAY[@]})" >> setup.sh
+
+          sed -i "s/^SNMPUSER=.*/SNMPUSER='${{ github.event.inputs.snmp_user }}'/" setup.sh || echo "SNMPUSER='${{ github.event.inputs.snmp_user }}'" >> setup.sh
+          sed -i "s/^SNMPASS=.*/SNMPASS='${{ github.event.inputs.snmp_pass }}'/" setup.sh || echo "SNMPASS='${{ github.event.inputs.snmp_pass }}'" >> setup.sh
+
+      - name: Show updated setup.sh
+        run: cat setup.sh
