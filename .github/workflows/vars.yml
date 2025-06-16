@@ -77,3 +77,13 @@ jobs:
 
       - name: Show updated setup.sh
         run: cat setup.sh
+
+      - name: Check Internet Connectivity
+        run: |
+          echo "Checking internet connectivity..."
+          if ping -c 1 google.com &> /dev/null; then
+            echo "Internet is reachable."
+          else
+            echo "Internet is not reachable."
+            exit 1
+          fi
