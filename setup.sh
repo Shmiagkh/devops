@@ -2,12 +2,11 @@
 
 set -e
 
-# Prompt for user input
-read -p "Enter the SSH username for nodes: " SSH_USER
-read -p "Enter space-separated IP addresses or hostnames of the nodes(servers, work stations): " -a NODE_IPS
-read -p "Enter snmp device adresses: " -a SNMPIPS
-read -p "Enter snmp device user: " SNMPUSER
-read -p "Enter snmp device password: " SNMPASS
+SSH_USER=
+NODE_IPS=
+SNMPIPS=
+SNMPUSER=
+SNMPASS=
 
 PLAYBOOK_PATH="./node_install.yaml"
 INVENTORY_FILE="./inventory.ini"
