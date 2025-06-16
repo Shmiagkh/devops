@@ -1,0 +1,19 @@
+name: Check Internet Connectivity
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-connectivity:
+    runs-on: self-hosted
+
+    steps:
+      - name: Check Internet Connectivity
+        run: |
+          echo "Checking internet connectivity..."
+          if ping -c 1 google.com &> /dev/null; then
+            echo "Internet is reachable."
+          else
+            echo "Internet is not reachable."
+            exit 1
+          fi
