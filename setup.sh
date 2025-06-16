@@ -2,11 +2,11 @@
 
 set -e
 
-SSH_USER=
-NODE_IPS=
-SNMPIPS=
-SNMPUSER=
-SNMPASS=
+SSH_USER='' 
+NODE_IPS=()
+SNMPIPS=()
+SNMPUSER=''
+SNMPASS=''
 
 PLAYBOOK_PATH="./node_install.yaml"
 INVENTORY_FILE="./inventory.ini"
