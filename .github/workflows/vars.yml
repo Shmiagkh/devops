@@ -81,7 +81,7 @@ jobs:
       - name: Check Internet Connectivity
         run: |
           echo "Checking internet connectivity..."
-          if ping -c 1 google.com &> /dev/null; then
+          if ping -c 1 8.8.8.8 &> /dev/null; then
             echo "Internet is reachable."
           else
             echo "Internet is not reachable."
