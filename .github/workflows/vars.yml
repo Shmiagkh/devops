@@ -78,10 +78,6 @@ jobs:
       - name: Show updated setup.sh
         run: cat setup.sh
 
-      - name: Make changes to a file
-        run: |
-          echo "This is a new line" >> test
-
       - name: Configure Git
         run: |
           git config --local user.name "github-actions"
@@ -89,8 +85,8 @@ jobs:
 
       - name: Commit changes
         run: |
-          git add test
-          git commit -m "Update test with a new line" || echo "No changes to commit"
+          git add setup.sh
+          git commit -m "Update setup.sh" || echo "No changes to commit"
 
       - name: Push changes
         run: |
