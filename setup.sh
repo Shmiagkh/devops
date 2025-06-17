@@ -40,6 +40,16 @@ if [ ! -d "grafana" ]; then
 fi
 chmod 777 grafana
 
+if [ ! -d "grafana/dashboards" ]; then
+  mkdir grafana/dashboards
+fi
+chmod 777 grafana
+
+if [ ! -d "grafana/datasources" ]; then
+  mkdir grafana/datasources
+fi
+chmod 777 grafana
+
 cat <<EOF > "snmp_exporter.yaml"
 ---
 services:
@@ -98,7 +108,8 @@ services:
       - "3000:3000"
     volumes:
       - ./grafana-data:/var/lib/grafana
-      - ./grafana:/etc/grafana/provisioning/datasources
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
     restart: unless-stopped
     networks:
       prometheus_frontend:
@@ -109,7 +120,7 @@ networks:
     external: true
 EOF
 
-cat <<EOF > "./grafana/datasource_prometheus.yaml"
+cat <<EOF > "./grafana/datasources/datasource_prometheus.yaml"
 apiVersion: 1
 
 datasources:
@@ -124,6 +135,242 @@ datasources:
     version: 1
     readOnly: false
 EOF
+
+cat <<EOF > "./grafana/dashboards/dash.yaml"
+apiVersion: 1
+
+providers:
+  - name: 'default'
+    orgId: 1
+    folder: ''
+    type: file
+    options:
+      path: /var/lib/grafana
+EOF
+
+cat <<EOF > "./grafana-data/dashboard.json"
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 0, 0, 0.5)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Node Exporter Hosts",
+      "type": "table",
+      "datasource": "Prometheus",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "up{job=\"node_exporter\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": "metric",
+            "keep": {
+              "metric": true,
+              "instance": true,
+              "value": true
+            },
+            "renameByName": {
+              "instance": "Host",
+              "value": "Status"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "CPU Usage",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\",job=\"node_exporter\"}[5m]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "1 - (avg by (instance) (node_memory_MemAvailable_bytes{job=\"node_exporter\"}) / avg by (instance) (node_memory_MemTotal_bytes{job=\"node_exporter\"}))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Disk Usage",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "1 - (node_filesystem_avail_bytes{job=\"node_exporter\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{job=\"node_exporter\",fstype!=\"tmpfs\"})",
+          "legendFormat": "{{instance}} {{mountpoint}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": [
+    "node_exporter",
+    "system",
+    "overview"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Node Exporter - Overview",
+  "version": 1
+}
+EOF
+
 cat <<EOF > "$PLAYBOOK_PATH"
 ---
 - name: Install Node Exporter on target hosts
