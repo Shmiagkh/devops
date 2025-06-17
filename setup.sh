@@ -120,7 +120,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://localhost:9090
+    url: http://172.19.0.11:9090
     isDefault: true
     editable: true
     jsonData:
