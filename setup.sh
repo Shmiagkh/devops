@@ -2,6 +2,7 @@
 
 set -e
 
+SSH_PASS='11'
 SSH_USER='' 
 NODE_IPS=()
 SNMPIPS=()
@@ -14,31 +15,26 @@ PROMETHEUS_TARGETS_FILE="./prometheus/prometheus_targets.yml"
 PROMETHEUS_CONFIG_FILE="./prometheus/prometheus.yml"
 MY_IP=$(ip route get 1 | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
 
-# prometheus directory
 if [ ! -d "prometheus" ]; then
   mkdir prometheus
 fi
 chmod 777 prometheus
 
-# prometheus-data directory
 if [ ! -d "prometheus-data" ]; then
   mkdir prometheus-data
 fi
 chmod 777 prometheus-data
 
-# grafana-data directory
 if [ ! -d "grafana-data" ]; then
   mkdir grafana-data
 fi
 chmod 777 grafana-data
 
-# snmp directory
 if [ ! -d "snmp" ]; then
   mkdir snmp
 fi
 chmod 777 snmp
 
-# grafana directory
 if [ ! -d "grafana" ]; then
   mkdir grafana
 fi
@@ -139,7 +135,7 @@ cat <<EOF > "$PLAYBOOK_PATH"
     node_exporter_group: "node_exporter"
     node_exporter_install_dir: "/usr/local/bin"
     node_exporter_service_path: "/etc/systemd/system/node_exporter.service"
-    ansible_become_pass: "11"
+    ansible_become_pass: "$SSH_PASS"
 
   tasks:
     - name: Create node_exporter system group
