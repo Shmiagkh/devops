@@ -3,11 +3,11 @@
 set -e
 
 SSH_PASS='11'
-SSH_USER='' 
-NODE_IPS=()
-SNMPIPS=()
-SNMPUSER=''
-SNMPASS=''
+SSH_USER='user'
+NODE_IPS=(10.0.3.8 10.0.3.10)
+SNMPIPS=(10.0.0.1)
+SNMPUSER='user'
+SNMPASS='11'
 
 PLAYBOOK_PATH="./node_install.yaml"
 INVENTORY_FILE="./inventory.ini"
