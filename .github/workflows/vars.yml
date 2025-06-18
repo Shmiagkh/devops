@@ -1,26 +1,26 @@
-name: Setup Script with Interactive Inputs
+name: Скрипт с указанием переменных
 
 on:
   workflow_dispatch:
     inputs:
       ssh_user:
-        description: 'SSH username for nodes'
+        description: 'SSH username для рабочих станций'
         required: true
         default: 'user'
       node_ips:
-        description: 'Space-separated IP addresses or hostnames of nodes (e.g. "192.168.1.10 server2")'
+        description: 'Разделенные пробелом IP или доменные имена раб.станций (e.g. "192.168.1.10 server2")'
         required: true
         default: '192.168.1.10'
       snmp_ips:
-        description: 'Space-separated SNMP device addresses (e.g. "10.0.0.1 10.0.0.2")'
+        description: 'Разделенные пробелом IP или доменные имена SNMP устройств (e.g. "10.0.0.1 router2")'
         required: true
         default: '10.0.0.1'
       snmp_user:
-        description: 'SNMP device user'
+        description: 'SNMP user'
         required: true
         default: 'public'
       snmp_pass:
-        description: 'SNMP device password'
+        description: 'SNMP password'
         required: true
         default: 'public'
 
@@ -32,25 +32,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Update variables at the top of setup.sh
+      - name: Update variables in setup.sh
         run: |
-          # Backup file
           cp setup.sh setup.sh.bak
 
-          # Prepare replacements
           SSH_USER_VAL="${{ github.event.inputs.ssh_user }}"
           SNMPUSER_VAL="${{ github.event.inputs.snmp_user }}"
           SNMPASS_VAL="${{ github.event.inputs.snmp_pass }}"
 
-          # Convert space-separated strings into bash arrays syntax
           IFS=' ' read -r -a NODE_IPS_ARRAY <<< "${{ github.event.inputs.node_ips }}"
           IFS=' ' read -r -a SNMPIPS_ARRAY <<< "${{ github.event.inputs.snmp_ips }}"
 
           NODE_IPS_VAL="NODE_IPS=(${NODE_IPS_ARRAY[@]})"
           SNMPIPS_VAL="SNMPIPS=(${SNMPIPS_ARRAY[@]})"
 
-          # Use sed to replace or insert these lines near the top of the file (after any shebang)
-          # Function to insert or replace variable near the top
           replace_or_insert() {
             local var_name=$1
             local var_val=$2
@@ -60,7 +55,6 @@ jobs:
               # Replace existing line
               sed -i "0,/^$var_name=/s/^$var_name=.*/$var_val/" "$file"
             else
-              # Insert after shebang or at start
               if head -1 "$file" | grep -q "^#!"; then
                 sed -i "1a $var_val" "$file"
               else
