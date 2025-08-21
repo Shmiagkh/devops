@@ -10,7 +10,8 @@ uuid=$(xray uuid)
 
 keys=$(xray x25519)
 
-read private_key public_key <<< "$keys"
+private_key=$(echo "$keys" | awk '/Private key:/ {print $3}')
+public_key=$(echo "$keys" | awk '/Public key:/ {print $3}')
 
 pass=$(openssl rand -base64 16)
 
