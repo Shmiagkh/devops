@@ -94,7 +94,7 @@ cat <<EOL > /usr/local/etc/xray/config.json
 EOL
 echo " "
 echo "vless://$uuid@$ip:443?security=reality&encryption=none&pbk=$public_key&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=www.microsoft.com&sid=$shortid#vless"
-ehco " "
+echo " "
 echo "ss://$pass@$ip:42638#ss22"
 
 systemctl start xray.service
