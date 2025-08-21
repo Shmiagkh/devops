@@ -6,9 +6,9 @@ bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release
 
 systemctl stop xray.service
 
-uuid=$(./usr/local/bin/xray uuid)
+uuid=$(xray uuid)
 
-keys=$(./usr/local/bin/xray x25519)
+keys=$(xray x25519)
 
 read private_key public_key <<< "$keys"
 
