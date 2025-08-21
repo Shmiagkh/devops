@@ -1,6 +1,6 @@
 #!/bin/bash
 
-apt install curl mc htop nano
+apt install curl mc htop nano qrencode
 
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
 
@@ -93,10 +93,15 @@ cat <<EOL > /usr/local/etc/xray/config.json
   ]
 }
 EOL
+
 echo " "
 echo "vless://$uuid@$ip:443?security=reality&encryption=none&pbk=$public_key&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=www.microsoft.com&sid=$shortid#vless"
-echo " "
+
+qrencode -t ansiutf8 "vless://$uuid@$ip:443?security=reality&encryption=none&pbk=$public_key&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=www.microsoft.com&sid=$shortid#vless"
+
 echo "ss://$pass@$ip:42638#ss22"
+
+qrencode -t ansiutf8 "ss://$pass@$ip:42638#ss22"
 
 systemctl start xray.service
 
